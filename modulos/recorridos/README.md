@@ -10,9 +10,11 @@
 
 Crea un recorrido para la carrera correspondiente, agrega sus escenas y carga los medios que envíe cada equipo. Un recorrido con un solo video puede tener una sola escena. También se pueden ordenar varias escenas y agregarles imágenes, narración o puntos de interés. Conserva el recorrido en borrador hasta revisar el material.
 
+El botón **Modo oscuro** cambia el tema de las pantallas públicas y de administración de Recorridos. La preferencia se recuerda en el navegador.
+
 ## Contrato del módulo
 
-- Un recorrido pertenece a una carrera del núcleo y pasa por borrador, publicado y archivado.
+- Un recorrido pertenece a una carrera del núcleo y pasa por borrador, publicado y archivado. Desde **Administrar recorridos**, coordinación puede pulsar **Desarchivar** para devolverlo a borrador con sus escenas, puntos y medios. Para mostrarlo de nuevo en el catálogo, vuelve a pulsar **Publicar**.
 - Cada escena pertenece a un recorrido. Se muestra ordenada por **orden, id**.
 - Cada punto pertenece a una escena y usa coordenadas porcentuales **x** e **y**.
 - Cada medio pertenece a una escena. Si se asigna a un punto, la llave foránea exige que ese punto pertenezca a la misma escena.

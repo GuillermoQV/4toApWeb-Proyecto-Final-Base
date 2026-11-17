@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../../nucleo/comun.php';
 requerir_rol('editor', 'coordinacion');
+require_once __DIR__ . '/../includes/plantilla.php';
 require_once __DIR__ . '/../includes/recorridos.php';
 require_once __DIR__ . '/../includes/escenas.php';
 require_once __DIR__ . '/../includes/medios.php';
@@ -29,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     redirigir($url);
 }
 
-cabecera('Eliminar escena');
+rec_cabecera('Eliminar escena');
 ?>
 <section class="contenedor seccion">
   <h1>Eliminar escena</h1>

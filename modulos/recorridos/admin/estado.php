@@ -35,6 +35,13 @@ if ($accion === 'publicar') {
     $consulta->execute([$recorrido['id']]);
     $correcto = $consulta->rowCount() === 1;
     mensaje($correcto ? 'exito' : 'error', $correcto ? 'Recorrido archivado.' : 'El recorrido debe estar publicado para archivarlo.');
+} elseif ($accion === 'desarchivar') {
+    $consulta = bd()->prepare("UPDATE rec_recorridos SET estado = 'borrador' WHERE id = ? AND estado = 'archivado'");
+    $consulta->execute([$recorrido['id']]);
+    $correcto = $consulta->rowCount() === 1;
+    mensaje($correcto ? 'exito' : 'error', $correcto
+        ? 'Recorrido desarchivado. Volvió a borrador.'
+        : 'El recorrido debe estar archivado para desarchivarlo.');
 } else {
     mensaje('error', 'Selecciona una acción válida.');
 }

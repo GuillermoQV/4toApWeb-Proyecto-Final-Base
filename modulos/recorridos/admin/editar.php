@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../../nucleo/comun.php';
 requerir_rol('editor', 'coordinacion');
+require_once __DIR__ . '/../includes/plantilla.php';
 require_once __DIR__ . '/../includes/recorridos.php';
 
 $recorrido = array_key_exists('id', $_GET) ? rec_recorrido_admin(rec_id($_GET['id'])) : null;
@@ -38,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-cabecera($recorrido === null ? 'Nuevo recorrido' : 'Editar recorrido');
+rec_cabecera($recorrido === null ? 'Nuevo recorrido' : 'Editar recorrido');
 ?>
 <section class="contenedor seccion">
   <p><a href="index.php">Volver a recorridos</a></p>

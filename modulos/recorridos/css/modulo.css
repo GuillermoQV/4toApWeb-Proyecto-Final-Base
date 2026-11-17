@@ -1,3 +1,70 @@
+.rec-tema {
+  padding-block-start: var(--e3);
+  text-align: end;
+}
+
+.rec-tema:not([hidden]) + .seccion {
+  padding-block-start: var(--e4);
+}
+
+.rec-tema button[aria-pressed="true"] {
+  background-color: var(--marca-100);
+  border-color: var(--marca-700);
+}
+
+@media screen {
+  html[data-rec-oscuro] {
+    color-scheme: dark;
+  }
+
+  html[data-rec-oscuro] body {
+    --marca-900: #101a2c;
+    --marca-700: #a4baff;
+    --marca-500: #c7d5ff;
+    --marca-100: #243453;
+    --acento: #ffac85;
+    --tinta: #f1f5ff;
+    --texto: #dce6f5;
+    --texto-suave: #adbdd4;
+    --blanco: #1b2639;
+    --superficie: #111a2a;
+    --borde: #3d4c63;
+    --borde-fuerte: #6b7e99;
+    --exito: #a5e3ba;
+    --exito-fondo: #183628;
+    --alerta: #ffd080;
+    --alerta-fondo: #3c2d16;
+    --error: #ffb6ae;
+    --error-fondo: #442526;
+    --info: #bbcbff;
+    --info-fondo: #233250;
+  }
+
+  html[data-rec-oscuro] .marca__distintivo {
+    background-color: var(--marca-700);
+  }
+
+  html[data-rec-oscuro] .pie a {
+    color: var(--texto);
+  }
+
+  html[data-rec-oscuro] :is(.insignia--borrador, .insignia--archivado) {
+    background-color: var(--marca-100);
+    color: var(--texto-suave);
+  }
+
+  html[data-rec-oscuro] .alerta--exito { color: var(--exito); }
+  html[data-rec-oscuro] .alerta--alerta { color: var(--alerta); }
+  html[data-rec-oscuro] .alerta--error { color: var(--error); }
+  html[data-rec-oscuro] .alerta--info { color: var(--info); }
+
+  html[data-rec-oscuro] .tabla th { color: var(--texto); }
+
+  html[data-rec-oscuro] .rec-marca {
+    background-color: var(--marca-900);
+  }
+}
+
 .rec-filtro {
   display: flex;
   flex-wrap: wrap;

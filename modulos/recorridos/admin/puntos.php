@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../../nucleo/comun.php';
 requerir_rol('editor', 'coordinacion');
+require_once __DIR__ . '/../includes/plantilla.php';
 require_once __DIR__ . '/../includes/recorridos.php';
 require_once __DIR__ . '/../includes/escenas.php';
 require_once __DIR__ . '/../includes/medios.php';
@@ -57,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $puntos = rec_puntos_admin($escenaId);
-cabecera('Puntos de interés');
+rec_cabecera('Puntos de interés');
 ?>
 <section class="contenedor seccion">
   <p><a href="escenas.php?recorrido_id=<?= e((string)$escena['recorrido_id']) ?>">Volver a escenas</a></p>

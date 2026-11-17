@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../../nucleo/comun.php';
 requerir_rol('editor', 'coordinacion');
+require_once __DIR__ . '/../includes/plantilla.php';
 
 require_once __DIR__ . '/../includes/medios.php';
 
@@ -71,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $medios = rec_medios_de_escena($escenaId);
-cabecera('Medios de escena');
+rec_cabecera('Medios de escena');
 ?>
 <section class="contenedor seccion">
   <p><a href="escenas.php?recorrido_id=<?= e((string)$escena['recorrido_id']) ?>">Volver a escenas</a></p>

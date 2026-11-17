@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../../nucleo/comun.php';
 requerir_rol('editor', 'coordinacion');
+require_once __DIR__ . '/../includes/plantilla.php';
 require_once __DIR__ . '/../includes/recorridos.php';
 require_once __DIR__ . '/../includes/medios.php';
 
@@ -59,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     redirigir('index.php');
 }
 
-cabecera('Eliminar recorrido');
+rec_cabecera('Eliminar recorrido');
 ?>
 <section class="contenedor seccion">
   <h1>Eliminar recorrido</h1>

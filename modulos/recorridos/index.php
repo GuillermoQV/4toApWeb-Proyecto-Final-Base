@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../nucleo/comun.php';
+require_once __DIR__ . '/includes/plantilla.php';
 require_once __DIR__ . '/includes/publico.php';
 
 $filtro = $_GET['carrera'] ?? '';
@@ -10,7 +11,7 @@ $id = is_string($filtro) ? entero($filtro) : null;
 $invalido = $filtro !== '' && ($id === null || carrera($id) === null);
 $recorridos = $invalido ? [] : rec_listado_publico($id);
 
-cabecera('Recorridos virtuales', '', 'css/modulo.css');
+rec_cabecera('Recorridos virtuales');
 ?>
 <section class="contenedor seccion">
   <h1>Recorridos virtuales</h1>

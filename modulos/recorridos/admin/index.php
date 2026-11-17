@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../../nucleo/comun.php';
 requerir_rol('editor', 'coordinacion');
+require_once __DIR__ . '/../includes/plantilla.php';
 require_once __DIR__ . '/../includes/recorridos.php';
 
 $esCoordinacion = rol() === 'coordinacion';
@@ -12,7 +13,7 @@ $recorridos = $esCoordinacion || $carreraId !== null
     ? rec_recorridos_admin($esCoordinacion ? null : $carreraId)
     : [];
 
-cabecera('Administrar recorridos');
+rec_cabecera('Administrar recorridos');
 ?>
 <section class="contenedor seccion">
   <p><a href="<?= e(RUTA_BASE . '/panel.php') ?>">Volver al panel</a></p>
@@ -40,14 +41,16 @@ cabecera('Administrar recorridos');
                 <li><a href="eliminar.php?id=<?= $id ?>">Eliminar recorrido</a></li>
               <?php endif; ?>
             </ul>
-            <?php if ($esCoordinacion && $fila['estado'] !== 'archivado'): ?>
+            <?php if ($esCoordinacion): ?>
               <form method="post" action="estado.php">
                 <?= campo_token() ?>
                 <input type="hidden" name="id" value="<?= $id ?>">
                 <?php if ($fila['estado'] === 'borrador'): ?>
                   <button class="boton boton--primario boton--pequeno" name="accion" value="publicar">Publicar</button>
-                <?php else: ?>
+                <?php elseif ($fila['estado'] === 'publicado'): ?>
                   <button class="boton boton--secundario boton--pequeno" name="accion" value="archivar">Archivar</button>
+                <?php else: ?>
+                  <button class="boton boton--secundario boton--pequeno" name="accion" value="desarchivar">Desarchivar</button>
                 <?php endif; ?>
               </form>
             <?php endif; ?>
