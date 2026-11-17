@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../../nucleo/comun.php';
 requerir_rol('editor', 'coordinacion');
+require_once __DIR__ . '/../includes/plantilla.php';
 require_once __DIR__ . '/../includes/recorridos.php';
 require_once __DIR__ . '/../includes/escenas.php';
 
@@ -11,7 +12,7 @@ $recorrido = rec_recorrido_admin(rec_id($_GET['recorrido_id'] ?? null));
 $recorridoId = (int)$recorrido['id'];
 $escenas = rec_escenas_admin($recorridoId);
 
-cabecera('Escenas del recorrido');
+rec_cabecera('Escenas del recorrido');
 ?>
 <section class="contenedor seccion">
   <p><a href="index.php">Volver a recorridos</a></p>

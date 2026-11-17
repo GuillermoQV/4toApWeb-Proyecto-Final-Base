@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../nucleo/comun.php';
+require_once __DIR__ . '/includes/plantilla.php';
 require_once __DIR__ . '/includes/publico.php';
 
 $entrada = $_GET['id'] ?? null;
@@ -27,7 +28,7 @@ $escena = $escenas[$posicion] ?? null;
 if ($escena !== null) {
     [$puntos, $medios, $imagenesDePunto] = rec_contenido_publico((int)$escena['id']);
 }
-cabecera($recorrido['titulo'], $recorrido['area'], 'css/modulo.css');
+rec_cabecera($recorrido['titulo'], $recorrido['area']);
 ?>
 <section class="contenedor seccion">
   <p><a href="index.php">Todos los recorridos</a></p>

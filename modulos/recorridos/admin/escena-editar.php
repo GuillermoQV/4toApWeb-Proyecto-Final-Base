@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../../nucleo/comun.php';
 requerir_rol('editor', 'coordinacion');
+require_once __DIR__ . '/../includes/plantilla.php';
 require_once __DIR__ . '/../includes/recorridos.php';
 require_once __DIR__ . '/../includes/escenas.php';
 
@@ -37,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-cabecera($escena === null ? 'Nueva escena' : 'Editar escena');
+rec_cabecera($escena === null ? 'Nueva escena' : 'Editar escena');
 ?>
 <section class="contenedor seccion">
   <p><a href="<?= e($url) ?>">Volver a escenas</a></p>
