@@ -10,7 +10,9 @@
 
 Crea un recorrido para la carrera correspondiente, agrega sus escenas y carga los medios que envíe cada equipo. Un recorrido con un solo video puede tener una sola escena. También se pueden ordenar varias escenas y agregarles imágenes, narración o puntos de interés. Conserva el recorrido en borrador hasta revisar el material.
 
-El botón **Modo oscuro** cambia el tema de las pantallas públicas y de administración de Recorridos. La preferencia se recuerda en el navegador.
+El selector de **sol y luna** cambia el tema de las pantallas públicas y de administración de Recorridos. La preferencia se recuerda en el navegador. Las animaciones respetan la opción de reducir el movimiento del dispositivo.
+
+Las tarjetas y el reproductor aparecen con una transición breve cuando entran en pantalla. El contenido sigue visible si el navegador no admite Intersection Observer.
 
 ## Contrato del módulo
 

@@ -25,7 +25,7 @@ rec_cabecera('Administrar recorridos');
   <?php if ($recorridos === []): ?>
     <p class="vacio">Todavía no hay recorridos en tu panel.</p>
   <?php else: ?>
-    <div class="rejilla">
+    <div class="rejilla rec-administracion">
       <?php foreach ($recorridos as $fila): ?>
         <?php $id = e((string)$fila['id']); ?>
         <article class="tarjeta">
