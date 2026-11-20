@@ -43,14 +43,14 @@ function rec_contenido_publico(int $escenaId): array
     $consulta->execute([$escenaId]);
 
     $medios = [];
-    $imagenesDePunto = [];
+    $mediosDePunto = [];
     foreach ($consulta->fetchAll() as $medio) {
         if ($medio['punto_id'] === null) {
             $medios[] = $medio;
-        } elseif ($medio['tipo'] === 'imagen') {
-            $imagenesDePunto[(int)$medio['punto_id']][] = $medio;
+        } else {
+            $mediosDePunto[(int)$medio['punto_id']][] = $medio;
         }
     }
 
-    return [$puntos, $medios, $imagenesDePunto];
+    return [$puntos, $medios, $mediosDePunto];
 }

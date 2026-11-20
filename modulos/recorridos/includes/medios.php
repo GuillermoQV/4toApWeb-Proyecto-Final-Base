@@ -77,15 +77,55 @@ function rec_obtener_medio(int $medioId): ?array
 
 function rec_registrar_medio(int $escenaId, int $carreraId, ?int $puntoId, string $tipo, string $nombre): bool
 {
-    // Confirma que la escena siga en la carrera comprobada al abrir el formulario.
-    $consulta = bd()->prepare(
-        'INSERT INTO rec_medios (escena_id, punto_id, tipo, nombre_archivo)
-         SELECT e.id, ?, ?, ? FROM rec_escenas e
-         JOIN rec_recorridos r ON r.id = e.recorrido_id
-         WHERE e.id = ? AND r.carrera_id = ?'
-    );
-    $consulta->execute([$puntoId, $tipo, $nombre, $escenaId, $carreraId]);
-    return $consulta->rowCount() === 1;
+    $db = bd();
+    $db->beginTransaction();
+    try {
+        $lock = $db->prepare('SELECT e.id FROM rec_escenas e JOIN rec_recorridos r ON r.id=e.recorrido_id
+                              WHERE e.id=? AND r.carrera_id=? FOR UPDATE');
+        $lock->execute([$escenaId, $carreraId]);
+        if (!$lock->fetchColumn()) {
+            throw new DomainException('La escena ya no está disponible.');
+        }
+        if ($puntoId === null) {
+            if ($tipo !== 'imagen') {
+                throw new DomainException('La escena completa admite una imagen. Asigna los videos a un punto.');
+            }
+            $q = $db->prepare("SELECT id FROM rec_medios WHERE escena_id=? AND punto_id IS NULL AND tipo='imagen' LIMIT 1");
+            $q->execute([$escenaId]);
+            if ($q->fetchColumn()) {
+                throw new DomainException('Esta escena ya tiene una imagen. Elimínala antes de subir otra.');
+            }
+        }
+        $q = $db->prepare('INSERT INTO rec_medios (escena_id,punto_id,tipo,nombre_archivo) VALUES (?,?,?,?)');
+        $q->execute([$escenaId, $puntoId, $tipo, $nombre]);
+        $db->commit();
+        return true;
+    } catch (Throwable $error) {
+        $db->rollBack();
+        throw $error;
+    }
+}
+
+function rec_eliminar_medio(int $medioId, int $escenaId, int $carreraId): void
+{
+    $db = bd();
+    $db->beginTransaction();
+    try {
+        $q = $db->prepare('SELECT m.nombre_archivo FROM rec_medios m JOIN rec_escenas e ON e.id=m.escena_id
+            JOIN rec_recorridos r ON r.id=e.recorrido_id WHERE m.id=? AND e.id=? AND r.carrera_id=? FOR UPDATE');
+        $q->execute([$medioId, $escenaId, $carreraId]);
+        $nombre = $q->fetchColumn();
+        if ($nombre === false) {
+            throw new DomainException('El medio ya no está en esta escena.');
+        }
+        $q = $db->prepare('DELETE FROM rec_medios WHERE id=? AND escena_id=?');
+        $q->execute([$medioId, $escenaId]);
+        $db->commit();
+    } catch (Throwable $error) {
+        $db->rollBack();
+        throw $error;
+    }
+    rec_limpiar_medio($nombre);
 }
 
 function rec_ruta_medio(string $nombre): string

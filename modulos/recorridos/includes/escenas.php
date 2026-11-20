@@ -68,6 +68,7 @@ function rec_baja_escena_o_punto(array $escena, ?int $puntoId): void
             $archivos = $consulta->fetchAll(PDO::FETCH_COLUMN);
             $consulta = $bd->prepare('DELETE FROM rec_escenas WHERE id = ?');
             $consulta->execute([$escena['id']]);
+            rec_renumerar((int)$recorrido['id']);
         } else {
             $consulta = $bd->prepare('SELECT id FROM rec_puntos WHERE id = ? AND escena_id = ? FOR UPDATE');
             $consulta->execute([$puntoId, $escena['id']]);
@@ -94,5 +95,25 @@ function rec_baja_escena_o_punto(array $escena, ?int $puntoId): void
         } catch (RuntimeException $error) {
             error_log('REC: ' . $error->getMessage());
         }
+    }
+}
+
+/** Dentro de una transacción con el recorrido bloqueado. */
+function rec_renumerar(int $recorridoId, ?int $mover = null, int $posicion = 1): void
+{
+    $q = bd()->prepare('SELECT id FROM rec_escenas WHERE recorrido_id=? ORDER BY orden,id FOR UPDATE');
+    $q->execute([$recorridoId]);
+    $ids = array_map('intval', $q->fetchAll(PDO::FETCH_COLUMN));
+    if ($mover !== null) {
+        $actual = array_search($mover, $ids, true);
+        if ($actual === false) {
+            throw new DomainException('La escena ya no pertenece a este recorrido.');
+        }
+        array_splice($ids, $actual, 1);
+        array_splice($ids, min($posicion - 1, count($ids)), 0, [$mover]);
+    }
+    $q = bd()->prepare('UPDATE rec_escenas SET orden=? WHERE id=? AND recorrido_id=?');
+    foreach ($ids as $indice => $id) {
+        $q->execute([$indice + 1, $id, $recorridoId]);
     }
 }

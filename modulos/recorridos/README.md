@@ -8,7 +8,7 @@
 
 ## Alta de contenido
 
-Crea un recorrido para la carrera correspondiente, agrega sus escenas y carga los medios que envíe cada equipo. Un recorrido con un solo video puede tener una sola escena. También se pueden ordenar varias escenas y agregarles imágenes, narración o puntos de interés. Conserva el recorrido en borrador hasta revisar el material.
+Crea un recorrido para la carrera correspondiente, agrega sus escenas y carga los medios que envíe cada equipo. Elige una imagen principal por escena. En cada punto de interés puedes cargar imágenes y videos MP4. El botón de cada punto abre un carrusel con el título, la descripción y los archivos en orden de carga. Se cierra con el botón Cerrar o con Escape. Desde Cargar medios puedes abrir o eliminar cada archivo individualmente. Los videos y audios de escena ya existentes se pueden seguir reproduciendo. Si una escena antigua tiene varias imágenes principales, se muestra la primera y el panel conserva las demás para revisarlas. Conserva el recorrido en borrador hasta revisar el material.
 
 El selector de **sol y luna** cambia el tema de las pantallas públicas y de administración de Recorridos. La preferencia se recuerda en el navegador. Las animaciones respetan la opción de reducir el movimiento del dispositivo.
 
@@ -17,12 +17,14 @@ Las tarjetas y el reproductor aparecen con una transición breve cuando entran e
 ## Contrato del módulo
 
 - Un recorrido pertenece a una carrera del núcleo y pasa por borrador, publicado y archivado. Desde **Administrar recorridos**, coordinación puede pulsar **Desarchivar** para devolverlo a borrador con sus escenas, puntos y medios. Para mostrarlo de nuevo en el catálogo, vuelve a pulsar **Publicar**.
-- Cada escena pertenece a un recorrido. Se muestra ordenada por **orden, id**.
-- Cada punto pertenece a una escena y usa coordenadas porcentuales **x** e **y**.
+- Cada escena pertenece a un recorrido. En el formulario, elige la posición en la lista desplegable. También puedes arrastrar su tarjeta sobre la posición deseada o usar Subir y Bajar. Al crear, mover o eliminar escenas se guardan posiciones consecutivas. El reproductor muestra las escenas en ese orden y resalta la seleccionada.
+- Los puntos aparecen debajo de los medios de su escena. Se numeran por orden de creación y sus botones se distribuyen según el ancho de pantalla.
 - Cada medio pertenece a una escena. Si se asigna a un punto, la llave foránea exige que ese punto pertenezca a la misma escena.
 - La carga está en **admin/medios.php?escena_id=ID**. Desde el panel de escenas enlaza a **medios.php?escena_id=ID**.
 - La vista pública puede usar **medio.php?id=ID** en el atributo src de imagen, video o audio. Usa **descarga=1** para ofrecer una descarga. Los publicados están disponibles al público. Un borrador o archivado solo se entrega a coordinación y al editor de la carrera.
 - Para mostrar los archivos de una escena, filtra por **escena_id** y **punto_id IS NULL**. Para mostrar los archivos de un punto, filtra por **punto_id** y **escena_id**.
+
+El catálogo y el panel muestran nueve recorridos por página, con tres columnas en escritorio. El filtro de carrera se conserva al paginar.
 
 ## Archivos
 
@@ -32,7 +34,7 @@ Los archivos se guardan fuera de la raíz web, en una carpeta hermana llamada **
 |---|---|---:|
 | Imagen | JPEG, PNG, WebP | 5 MB |
 | Video | MP4 | 30 MB |
-| Narración | MP3, M4A | 10 MB |
+| Narración previa | MP3, M4A (reproducción de archivos existentes) | — |
 
 En XAMPP el límite efectivo también depende de PHP. Para usar el máximo del módulo puedes establecer **upload_max_filesize=30M** y **post_max_size=32M** en php.ini y reiniciar Apache. Usa archivos pequeños en la primera prueba.
 
