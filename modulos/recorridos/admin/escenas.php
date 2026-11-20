@@ -10,6 +10,28 @@ require_once __DIR__ . '/../includes/escenas.php';
 
 $recorrido = rec_recorrido_admin(rec_id($_GET['recorrido_id'] ?? null));
 $recorridoId = (int)$recorrido['id'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    rec_token_post();
+    $id = rec_id($_POST['mover'] ?? null);
+    $posicion = rec_id($_POST['posicion'] ?? null);
+    if ($id === null || $posicion === null) {
+        no_encontrado('Movimiento no válido.');
+    }
+    $destino = 'escenas.php?recorrido_id=' . $recorridoId;
+    $db = bd();
+    $db->beginTransaction();
+    try {
+        rec_recorrido_admin($recorridoId, true);
+        rec_renumerar($recorridoId, $id, $posicion);
+        $db->commit();
+        $destino .= '#escena-' . $id;
+        mensaje('exito', 'Orden actualizado.');
+    } catch (Throwable $error) {
+        $db->rollBack();
+        mensaje('error', 'No se pudo mover la escena. Revisa la lista actual.');
+    }
+    redirigir($destino);
+}
 $escenas = rec_escenas_admin($recorridoId);
 
 rec_cabecera('Escenas del recorrido');
@@ -19,18 +41,24 @@ rec_cabecera('Escenas del recorrido');
   <h1>Escenas de <?= e($recorrido['titulo']) ?></h1>
   <?php pintar_mensajes(); ?>
   <p><a class="boton boton--primario" href="escena-editar.php?recorrido_id=<?= e((string)$recorridoId) ?>">Nueva escena</a></p>
-  <p>El número de orden indica qué escena aparece primero en el recorrido.</p>
+  <p>Arrastra una tarjeta sobre otra o usa los botones para cambiar su posición. El orden se guarda al moverla.</p>
   <?php if ($escenas === []): ?>
     <p class="vacio">Este recorrido todavía no tiene escenas.</p>
   <?php else: ?>
     <div class="rejilla">
-      <?php foreach ($escenas as $escena): ?>
+      <?php foreach ($escenas as $indice => $escena): ?>
         <?php $id = e((string)$escena['id']); ?>
-        <article class="tarjeta">
+        <article id="escena-<?= $id ?>" class="tarjeta" draggable="true" data-posicion="<?= e((string)($indice + 1)) ?>">
           <div class="tarjeta__cuerpo">
             <h2 class="tarjeta__titulo"><?= e($escena['titulo']) ?></h2>
-            <p>Orden <?= e((string)$escena['orden']) ?></p>
+            <p>Orden <?= e((string)($indice + 1)) ?></p>
             <?php if ($escena['descripcion'] !== ''): ?><p><?= e($escena['descripcion']) ?></p><?php endif; ?>
+            <form method="post" class="rec-orden">
+              <?= campo_token() ?>
+              <input type="hidden" name="mover" value="<?= $id ?>">
+              <button class="boton boton--secundario" name="posicion" value="<?= e((string)$indice) ?>" <?= $indice === 0 ? 'disabled' : '' ?>>Subir</button>
+              <button class="boton boton--secundario" name="posicion" value="<?= e((string)($indice + 2)) ?>" <?= $indice === count($escenas)-1 ? 'disabled' : '' ?>>Bajar</button>
+            </form>
             <ul>
               <li><a href="escena-editar.php?id=<?= $id ?>">Editar y cambiar el orden</a></li>
               <li><a href="puntos.php?escena_id=<?= $id ?>">Puntos de interés</a></li>
@@ -45,4 +73,5 @@ rec_cabecera('Escenas del recorrido');
     </div>
   <?php endif; ?>
 </section>
+<script src="../js/orden.js?v=<?= e((string)filemtime(__DIR__ . '/../js/orden.js')) ?>" defer></script>
 <?php pie(); ?>

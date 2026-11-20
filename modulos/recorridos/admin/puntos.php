@@ -13,7 +13,7 @@ $escena = rec_escena_admin(rec_id($_GET['escena_id'] ?? null));
 $escenaId = (int)$escena['id'];
 $url = 'puntos.php?escena_id=' . $escenaId;
 $punto = array_key_exists('id', $_GET) ? rec_punto_admin(rec_id($_GET['id']), $escenaId) : null;
-$datos = $punto ?? ['titulo' => '', 'descripcion' => '', 'x' => '50', 'y' => '50'];
+$datos = $punto ?? ['titulo' => '', 'descripcion' => ''];
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -35,20 +35,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         http_response_code(400);
         exit('Acción no válida.');
     }
-    foreach (['titulo', 'descripcion', 'x', 'y'] as $campo) {
+    foreach (['titulo', 'descripcion'] as $campo) {
         $datos[$campo] = is_string($_POST[$campo] ?? null) ? post($campo) : '';
     }
-    $x = $datos['x'];
-    $y = $datos['y'];
-    if ($datos['titulo'] === '' || mb_strlen($datos['titulo']) > 160 || mb_strlen($datos['descripcion']) > 8000
-        || !is_numeric($x) || !is_numeric($y) || $x < 0 || $x > 100 || $y < 0 || $y > 100) {
-        $error = 'Escribe un título válido y dos coordenadas entre 0 y 100. La descripción admite hasta 8000 caracteres.';
+    if ($datos['titulo'] === '' || mb_strlen($datos['titulo']) > 160 || mb_strlen($datos['descripcion']) > 8000) {
+        $error = 'Escribe un título de entre 1 y 160 caracteres. La descripción admite hasta 8000 caracteres.';
     } else {
-        $valores = [$datos['titulo'], $datos['descripcion'], (float)$x, (float)$y, $escenaId];
+        $valores = [$datos['titulo'], $datos['descripcion'], $escenaId];
         if ($punto === null) {
-            $consulta = bd()->prepare('INSERT INTO rec_puntos (titulo, descripcion, x, y, escena_id) VALUES (?, ?, ?, ?, ?)');
+            $consulta = bd()->prepare('INSERT INTO rec_puntos (titulo, descripcion, x, y, escena_id) VALUES (?, ?, 50, 50, ?)');
         } else {
-            $consulta = bd()->prepare('UPDATE rec_puntos SET titulo = ?, descripcion = ?, x = ?, y = ? WHERE escena_id = ? AND id = ?');
+            $consulta = bd()->prepare('UPDATE rec_puntos SET titulo = ?, descripcion = ? WHERE escena_id = ? AND id = ?');
             $valores[] = $punto['id'];
         }
         $consulta->execute($valores);
@@ -67,11 +64,11 @@ rec_cabecera('Puntos de interés');
   <?php if ($puntos === []): ?>
     <p>Esta escena todavía no tiene puntos.</p>
   <?php else: ?>
-    <ul>
+    <ol>
       <?php foreach ($puntos as $fila): ?>
-        <li><a href="<?= e($url . '&id=' . $fila['id']) ?>"><?= e($fila['titulo']) ?></a> (<?= e((string)$fila['x']) ?>%, <?= e((string)$fila['y']) ?>%)</li>
+        <li><a href="<?= e($url . '&id=' . $fila['id']) ?>"><?= e($fila['titulo']) ?></a></li>
       <?php endforeach; ?>
-    </ul>
+    </ol>
   <?php endif; ?>
   <h2><?= $punto === null ? 'Nuevo punto' : 'Editar punto' ?></h2>
   <?php if ($error !== ''): ?><p class="alerta alerta--error" role="alert"><?= e($error) ?></p><?php endif; ?>
@@ -85,14 +82,6 @@ rec_cabecera('Puntos de interés');
       <label class="campo__etiqueta" for="descripcion">Descripción</label>
       <textarea class="campo__control" id="descripcion" name="descripcion" maxlength="8000"><?= e($datos['descripcion']) ?></textarea>
     </div>
-    <p>La posición se mide desde la esquina superior izquierda de la imagen.</p>
-    <?php foreach (['x' => 'Horizontal', 'y' => 'Vertical'] as $eje => $etiqueta): ?>
-      <div class="campo">
-        <label class="campo__etiqueta" for="<?= e($eje) ?>"><?= e($etiqueta) ?> (%)</label>
-        <input class="campo__control" id="<?= e($eje) ?>" name="<?= e($eje) ?>" type="number"
-               min="0" max="100" step="0.01" value="<?= e((string)$datos[$eje]) ?>" required>
-      </div>
-    <?php endforeach; ?>
     <button class="boton boton--primario" name="accion" value="guardar">Guardar punto</button>
     <?php if ($punto !== null): ?><a class="boton boton--secundario" href="<?= e($url) ?>">Nuevo punto</a><?php endif; ?>
   </form>

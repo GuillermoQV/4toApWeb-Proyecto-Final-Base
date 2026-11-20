@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../nucleo/comun.php';
 require_once __DIR__ . '/includes/plantilla.php';
+require_once __DIR__ . '/includes/paginacion.php';
 require_once __DIR__ . '/includes/publico.php';
 
 $filtro = $_GET['carrera'] ?? '';
@@ -11,9 +12,11 @@ $id = is_string($filtro) ? entero($filtro) : null;
 $invalido = $filtro !== '' && ($id === null || carrera($id) === null);
 $recorridos = $invalido ? [] : rec_listado_publico($id);
 
+[$recorridos, $pagina, $paginas] = rec_paginar($recorridos);
+
 rec_cabecera('Recorridos virtuales');
 ?>
-<section class="contenedor seccion">
+<section class="contenedor seccion<?= !$invalido && $recorridos === [] ? ' rec-catalogo-vacio' : '' ?>">
   <h1>Recorridos virtuales</h1>
   <form class="panel rec-filtro" method="get">
     <div class="campo">
@@ -31,7 +34,7 @@ rec_cabecera('Recorridos virtuales');
   <?php if ($invalido): ?>
     <p class="alerta alerta--error" role="alert">Selecciona una carrera del listado.</p>
   <?php elseif ($recorridos === []): ?>
-    <p class="vacio">Todavía no hay recorridos publicados<?= $id === null ? '.' : ' para esta carrera.' ?></p>
+    <div class="vacio"><p>Todavía no hay recorridos publicados<?= $id === null ? '.' : ' para esta carrera.' ?></p></div>
   <?php else: ?>
     <div class="rejilla rec-resultados">
       <?php foreach ($recorridos as $recorrido): ?>
@@ -47,6 +50,7 @@ rec_cabecera('Recorridos virtuales');
         </article>
       <?php endforeach; ?>
     </div>
+    <?php rec_paginador($pagina, $paginas, $id); ?>
   <?php endif; ?>
 </section>
 <?php pie(); ?>

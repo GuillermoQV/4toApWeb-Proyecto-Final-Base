@@ -28,6 +28,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     verificar_token();
 
+    if (isset($_POST['eliminar'])) {
+        $id = is_string($_POST['eliminar']) ? entero($_POST['eliminar']) : null;
+        try {
+            rec_eliminar_medio($id ?? 0, $escenaId, $carreraId);
+            mensaje('exito', 'Medio eliminado.');
+        } catch (DomainException $error) {
+            mensaje('error', $error->getMessage());
+        }
+        redirigir($urlPanel);
+    }
     $tipo = $_POST['tipo'] ?? '';
     $punto = $_POST['punto_id'] ?? '';
     $archivo = $_FILES['archivo'] ?? null;
@@ -42,8 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         mensaje('error', 'El punto de interés debe pertenecer a esta escena.');
         redirigir($urlPanel);
     }
-    if ($puntoId !== null && $tipo !== 'imagen') {
-        mensaje('error', 'Los puntos de interés admiten imágenes.');
+    if ($puntoId !== null && $tipo === 'audio') {
+        mensaje('error', 'Los puntos de interés admiten imágenes y videos.');
         redirigir($urlPanel);
     }
 
@@ -57,6 +67,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         $guardado = rec_registrar_medio($escenaId, $carreraId, $puntoId, $tipo, $nombre);
+    } catch (DomainException $error) {
+        rec_limpiar_medio($nombre);
+        mensaje('error', $error->getMessage());
+        redirigir($urlPanel);
     } catch (PDOException $error) {
         error_log('REC: no se pudo registrar el medio. ' . $error->getMessage());
         $guardado = false;
@@ -85,7 +99,7 @@ rec_cabecera('Medios de escena');
       <select class="campo__control" id="tipo" name="tipo" required>
         <option value="imagen">Imagen (hasta 5 MB)</option>
         <option value="video">Video MP4 (hasta 30 MB)</option>
-        <option value="audio">Audio MP3 o M4A (hasta 10 MB)</option>
+
       </select>
     </div>
     <div class="campo">
@@ -96,12 +110,12 @@ rec_cabecera('Medios de escena');
           <option value="<?= e((string)$punto['id']) ?>"><?= e($punto['titulo']) ?></option>
         <?php endforeach; ?>
       </select>
-      <p>Selecciona un punto de interés si vas a subir una imagen para ese punto.</p>
+      <p>La escena completa admite una sola imagen. En cada punto puedes subir varias imágenes y videos.</p>
     </div>
     <div class="campo">
       <label class="campo__etiqueta" for="archivo">Archivo</label>
       <input class="campo__control" id="archivo" name="archivo" type="file" required
-             accept="image/jpeg,image/png,image/webp,video/mp4,audio/mpeg,audio/mp4">
+             accept="image/jpeg,image/png,image/webp,video/mp4">
     </div>
     <button class="boton boton--primario" type="submit">Subir medio</button>
   </form>
@@ -115,6 +129,10 @@ rec_cabecera('Medios de escena');
         <li>
           <?= e($medio['tipo']) ?> · <?= e($medio['punto'] ?? 'Escena completa') ?>
           <a href="../medio.php?id=<?= e((string)$medio['id']) ?>">Abrir medio <?= e((string)$medio['id']) ?></a>
+          <form method="post" action="<?= e($urlPanel) ?>">
+            <?= campo_token() ?>
+            <button class="boton boton--peligro boton--pequeno" name="eliminar" value="<?= e((string)$medio['id']) ?>">Eliminar medio</button>
+          </form>
         </li>
       <?php endforeach; ?>
     </ul>
