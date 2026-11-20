@@ -57,14 +57,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $puntos = rec_puntos_admin($escenaId);
 rec_cabecera('Puntos de interés');
 ?>
-<section class="contenedor seccion">
+<section class="contenedor seccion rec-formulario">
   <p><a href="escenas.php?recorrido_id=<?= e((string)$escena['recorrido_id']) ?>">Volver a escenas</a></p>
   <h1>Puntos de interés de <?= e($escena['titulo']) ?></h1>
   <?php pintar_mensajes(); ?>
   <?php if ($puntos === []): ?>
     <p>Esta escena todavía no tiene puntos.</p>
   <?php else: ?>
-    <ol>
+    <ol class="rec-puntos-panel" role="list">
       <?php foreach ($puntos as $fila): ?>
         <li><a href="<?= e($url . '&id=' . $fila['id']) ?>"><?= e($fila['titulo']) ?></a></li>
       <?php endforeach; ?>

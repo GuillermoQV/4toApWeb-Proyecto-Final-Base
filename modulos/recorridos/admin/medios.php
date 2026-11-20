@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $medios = rec_medios_de_escena($escenaId);
 rec_cabecera('Medios de escena');
 ?>
-<section class="contenedor seccion">
+<section class="contenedor seccion rec-formulario">
   <p><a href="escenas.php?recorrido_id=<?= e((string)$escena['recorrido_id']) ?>">Volver a escenas</a></p>
   <h1>Medios de <?= e($escena['titulo']) ?></h1>
   <?php pintar_mensajes(); ?>
@@ -104,13 +104,13 @@ rec_cabecera('Medios de escena');
     </div>
     <div class="campo">
       <label class="campo__etiqueta" for="punto_id">Ubicación del medio</label>
-      <select class="campo__control" id="punto_id" name="punto_id">
+      <select class="campo__control" id="punto_id" name="punto_id" aria-describedby="rec-ayuda-ubicacion">
         <option value="">Escena completa</option>
         <?php foreach ($puntos as $punto): ?>
           <option value="<?= e((string)$punto['id']) ?>"><?= e($punto['titulo']) ?></option>
         <?php endforeach; ?>
       </select>
-      <p>La escena completa admite una sola imagen. En cada punto puedes subir varias imágenes y videos.</p>
+      <p id="rec-ayuda-ubicacion" class="campo__ayuda">La escena completa admite una sola imagen. En cada punto puedes subir varias imágenes y videos.</p>
     </div>
     <div class="campo">
       <label class="campo__etiqueta" for="archivo">Archivo</label>
@@ -124,11 +124,11 @@ rec_cabecera('Medios de escena');
   <?php if ($medios === []): ?>
     <p>La escena aún no tiene medios.</p>
   <?php else: ?>
-    <ul>
+    <ul class="rec-archivos">
       <?php foreach ($medios as $medio): ?>
         <li>
-          <?= e($medio['tipo']) ?> · <?= e($medio['punto'] ?? 'Escena completa') ?>
-          <a href="../medio.php?id=<?= e((string)$medio['id']) ?>">Abrir medio <?= e((string)$medio['id']) ?></a>
+          <span><strong><?= e(ucfirst($medio['tipo'])) ?></strong> · <?= e($medio['punto'] ?? 'Escena completa') ?></span>
+          <a data-visor="<?= e($medio['tipo']) ?>" aria-haspopup="dialog" href="../medio.php?id=<?= e((string)$medio['id']) ?>">Abrir medio <?= e((string)$medio['id']) ?></a>
           <form method="post" action="<?= e($urlPanel) ?>">
             <?= campo_token() ?>
             <button class="boton boton--peligro boton--pequeno" name="eliminar" value="<?= e((string)$medio['id']) ?>">Eliminar medio</button>
@@ -138,4 +138,5 @@ rec_cabecera('Medios de escena');
     </ul>
   <?php endif; ?>
 </section>
+<?php require __DIR__ . '/../includes/visor.php'; ?>
 <?php pie(); ?>

@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 rec_cabecera('Eliminar recorrido');
 ?>
-<section class="contenedor seccion">
+<section class="contenedor seccion rec-formulario">
   <h1>Eliminar recorrido</h1>
   <p>Confirma la baja de «<?= e($recorrido['titulo']) ?>». También se eliminarán sus escenas, puntos y medios.</p>
   <form method="post">

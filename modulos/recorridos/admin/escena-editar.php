@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 rec_cabecera($escena === null ? 'Nueva escena' : 'Editar escena');
 ?>
-<section class="contenedor seccion">
+<section class="contenedor seccion rec-formulario">
   <p><a href="<?= e($url) ?>">Volver a escenas</a></p>
   <h1><?= $escena === null ? 'Nueva escena' : 'Editar escena' ?></h1>
   <?php if ($error !== ''): ?><p class="alerta alerta--error" role="alert"><?= e($error) ?></p><?php endif; ?>
@@ -72,7 +72,7 @@ rec_cabecera($escena === null ? 'Nueva escena' : 'Editar escena');
     </div>
     <div class="campo">
       <label class="campo__etiqueta" for="orden">Posición en el recorrido</label>
-      <select class="campo__control" id="orden" name="orden" required>
+      <select class="campo__control" id="orden" name="orden" style="width: min(5rem, 100%)" required>
         <?php for ($posicion = 1; $posicion <= $totalPosiciones; $posicion++): ?>
           <option value="<?= e((string)$posicion) ?>"<?= (string)$posicion === $orden ? ' selected' : '' ?>><?= e((string)$posicion) ?></option>
         <?php endfor; ?>
