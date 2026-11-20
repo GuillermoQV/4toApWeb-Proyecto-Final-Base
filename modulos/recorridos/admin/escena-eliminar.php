@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 rec_cabecera('Eliminar escena');
 ?>
-<section class="contenedor seccion">
+<section class="contenedor seccion rec-formulario">
   <h1>Eliminar escena</h1>
   <p>Confirma la baja de «<?= e($escena['titulo']) ?>» y de sus puntos y medios.</p>
   <form method="post">

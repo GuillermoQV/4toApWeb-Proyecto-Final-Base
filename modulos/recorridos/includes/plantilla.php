@@ -13,6 +13,7 @@ function rec_cabecera(string $titulo, string $area = ''): void
     <span class="rec-tema__icono rec-tema__luna" aria-hidden="true"></span>
   </button>
 </div>
+<script src="<?= e($rutaModulo . '/js/menu.js') ?>"></script>
 <script src="<?= e($rutaModulo . '/js/tema.js') ?>"></script>
 <script src="<?= e($rutaModulo . '/js/movimiento.js') ?>" defer></script>
 <?php

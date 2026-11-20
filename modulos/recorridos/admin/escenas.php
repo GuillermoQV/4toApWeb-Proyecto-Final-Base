@@ -45,26 +45,28 @@ rec_cabecera('Escenas del recorrido');
   <?php if ($escenas === []): ?>
     <p class="vacio">Este recorrido todavía no tiene escenas.</p>
   <?php else: ?>
-    <div class="rejilla">
+    <div class="rejilla rec-escenas">
       <?php foreach ($escenas as $indice => $escena): ?>
         <?php $id = e((string)$escena['id']); ?>
         <article id="escena-<?= $id ?>" class="tarjeta" draggable="true" data-posicion="<?= e((string)($indice + 1)) ?>">
-          <div class="tarjeta__cuerpo">
+          <div class="tarjeta__cuerpo rec-ficha">
+            <header>
             <h2 class="tarjeta__titulo"><?= e($escena['titulo']) ?></h2>
-            <p>Orden <?= e((string)($indice + 1)) ?></p>
+            <span class="rec-orden-numero">Orden <?= e((string)($indice + 1)) ?></span>
+            </header>
             <?php if ($escena['descripcion'] !== ''): ?><p><?= e($escena['descripcion']) ?></p><?php endif; ?>
             <form method="post" class="rec-orden">
               <?= campo_token() ?>
               <input type="hidden" name="mover" value="<?= $id ?>">
-              <button class="boton boton--secundario" name="posicion" value="<?= e((string)$indice) ?>" <?= $indice === 0 ? 'disabled' : '' ?>>Subir</button>
-              <button class="boton boton--secundario" name="posicion" value="<?= e((string)($indice + 2)) ?>" <?= $indice === count($escenas)-1 ? 'disabled' : '' ?>>Bajar</button>
+              <button class="boton boton--primario" name="posicion" value="<?= e((string)$indice) ?>" <?= $indice === 0 ? 'disabled' : '' ?>>↑ Subir</button>
+              <button class="boton boton--primario" name="posicion" value="<?= e((string)($indice + 2)) ?>" <?= $indice === count($escenas)-1 ? 'disabled' : '' ?>>↓ Bajar</button>
             </form>
-            <ul>
-              <li><a href="escena-editar.php?id=<?= $id ?>">Editar y cambiar el orden</a></li>
-              <li><a href="puntos.php?escena_id=<?= $id ?>">Puntos de interés</a></li>
-              <li><a href="medios.php?escena_id=<?= $id ?>">Cargar medios</a></li>
+            <ul class="rec-acciones">
+              <li><a href="escena-editar.php?id=<?= $id ?>"><span class="rec-icono-accion" aria-hidden="true">✎</span>Editar y cambiar el orden</a></li>
+              <li><a href="puntos.php?escena_id=<?= $id ?>"><span class="rec-icono-accion" aria-hidden="true">◎</span>Puntos de interés</a></li>
+              <li><a href="medios.php?escena_id=<?= $id ?>"><span class="rec-icono-accion" aria-hidden="true">▧</span>Cargar medios</a></li>
               <?php if ($recorrido['estado'] !== 'publicado'): ?>
-                <li><a href="escena-eliminar.php?id=<?= $id ?>">Eliminar escena</a></li>
+                <li><a class="rec-eliminar" href="escena-eliminar.php?id=<?= $id ?>"><span class="rec-icono-accion" aria-hidden="true">×</span>Eliminar escena</a></li>
               <?php endif; ?>
             </ul>
           </div>

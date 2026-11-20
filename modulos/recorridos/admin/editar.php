@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 rec_cabecera($recorrido === null ? 'Nuevo recorrido' : 'Editar recorrido');
 ?>
-<section class="contenedor seccion">
+<section class="contenedor seccion rec-formulario">
   <p><a href="index.php">Volver a recorridos</a></p>
   <h1><?= $recorrido === null ? 'Nuevo recorrido' : 'Editar recorrido' ?></h1>
   <?php if ($error !== ''): ?><p class="alerta alerta--error" role="alert"><?= e($error) ?></p><?php endif; ?>

@@ -35,13 +35,13 @@ rec_cabecera('Administrar recorridos');
           <div class="tarjeta__cuerpo">
             <h2 class="tarjeta__titulo"><?= e($fila['titulo']) ?></h2>
             <p><?= e($fila['carrera']) ?> · <span class="insignia insignia--<?= e($fila['estado']) ?>"><?= e(ucfirst($fila['estado'])) ?></span></p>
-            <ul>
+            <ul class="rec-enlaces-panel">
               <li><a href="editar.php?id=<?= $id ?>">Editar recorrido</a></li>
               <li><a href="escenas.php?recorrido_id=<?= $id ?>">Administrar escenas</a></li>
               <?php if ($fila['estado'] === 'publicado'): ?>
                 <li><a href="../ver.php?id=<?= $id ?>">Ver recorrido público</a></li>
               <?php else: ?>
-                <li><a href="eliminar.php?id=<?= $id ?>">Eliminar recorrido</a></li>
+                <li><a class="rec-eliminar" href="eliminar.php?id=<?= $id ?>">Eliminar recorrido</a></li>
               <?php endif; ?>
             </ul>
             <?php if ($esCoordinacion): ?>
