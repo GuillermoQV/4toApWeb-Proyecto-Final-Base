@@ -1,84 +1,39 @@
 <?php
-
 declare(strict_types=1);
-
 require_once __DIR__ . '/../../../nucleo/comun.php';
 requerir_rol('editor', 'coordinacion');
-require_once __DIR__ . '/../includes/plantilla.php';
 require_once __DIR__ . '/../includes/recorridos.php';
-require_once __DIR__ . '/../includes/escenas.php';
 
-$escena = array_key_exists('id', $_GET) ? rec_escena_admin(rec_id($_GET['id'])) : null;
-$recorrido = rec_recorrido_admin($escena === null ? rec_id($_GET['recorrido_id'] ?? null) : (int)$escena['recorrido_id']);
-$url = 'escenas.php?recorrido_id=' . $recorrido['id'];
-$titulo = $escena['titulo'] ?? '';
-$descripcion = $escena['descripcion'] ?? '';
-$ids = array_map('intval', array_column(rec_escenas_admin((int)$recorrido['id']), 'id'));
-$totalPosiciones = count($ids) + ($escena === null ? 1 : 0);
-$orden = (string)($escena === null ? $totalPosiciones : array_search((int)$escena['id'], $ids, true) + 1);
-$error = '';
+$escena = isset($_GET['id']) ? rec_escena_admin(rec_id($_GET['id'])) : null;
+$recorridoId = (int)($escena['recorrido_id'] ?? rec_recorrido_admin(rec_id($_GET['recorrido_id'] ?? null))['id']);
+$url = 'escenas.php?recorrido_id=' . $recorridoId;
+[$titulo, $descripcion] = rec_textos($escena);
+$escenaId = $escena ? (int)$escena['id'] : null;
+$ids = array_map('intval', array_column(rec_escenas($recorridoId), 'id'));
+$total = count($ids) + ($escenaId === null ? 1 : 0);
+$posicion = array_search($escenaId, $ids, true);
+$orden = rec_es_post() ? rec_id($_POST['orden'] ?? null) : ($posicion === false ? $total : $posicion + 1);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    rec_token_post();
-    $titulo = is_string($_POST['titulo'] ?? null) ? post('titulo') : '';
-    $descripcion = is_string($_POST['descripcion'] ?? null) ? post('descripcion') : '';
-    $orden = is_string($_POST['orden'] ?? null) ? post('orden') : '';
-    $ordenId = entero($orden);
-    if ($titulo === '' || mb_strlen($titulo) > 160 || mb_strlen($descripcion) > 8000
-        || $ordenId === null || $ordenId > $totalPosiciones) {
-        $error = 'Escribe un título válido, una descripción de hasta 8000 caracteres y una posición disponible.';
-    } else {
-        $db = bd();
-        $db->beginTransaction();
-        try {
-            $recorridoId = (int)$recorrido['id'];
-            rec_recorrido_admin($recorridoId, true);
-            if ($escena === null) {
-                $q = $db->prepare('INSERT INTO rec_escenas (recorrido_id,titulo,descripcion,orden) VALUES (?,?,?,?)');
-                $q->execute([$recorridoId, $titulo, $descripcion, $ordenId]);
-                $escenaId = (int)$db->lastInsertId();
-            } else {
-                $escenaId = (int)$escena['id'];
-                $q = $db->prepare('UPDATE rec_escenas SET titulo=?, descripcion=? WHERE id=? AND recorrido_id=?');
-                $q->execute([$titulo, $descripcion, $escenaId, $recorridoId]);
-            }
-            rec_renumerar($recorridoId, $escenaId, $ordenId);
-            $db->commit();
-        } catch (Throwable $error) {
-            $db->rollBack();
-            mensaje('error', 'No se pudo guardar la escena. Recarga la lista e inténtalo de nuevo.');
-            redirigir($url);
-        }
-        mensaje('exito', 'Escena guardada.');
-        redirigir($url);
+rec_post($url, function () use ($recorridoId, $escenaId, $titulo, $descripcion, $orden, $total): void {
+    rec_validar_textos($titulo, $descripcion);
+    if ($orden === null || $orden > $total) {
+        throw new DomainException('Elige una posición disponible.');
     }
-}
+    rec_guardar_escena($recorridoId, $escenaId, $titulo, $descripcion, $orden);
+}, 'Escena guardada.');
 
-rec_cabecera($escena === null ? 'Nueva escena' : 'Editar escena');
+rec_cabecera($escena ? 'Editar escena' : 'Nueva escena');
 ?>
-<section class="contenedor seccion rec-formulario">
-  <p><a href="<?= e($url) ?>">Volver a escenas</a></p>
-  <h1><?= $escena === null ? 'Nueva escena' : 'Editar escena' ?></h1>
-  <?php if ($error !== ''): ?><p class="alerta alerta--error" role="alert"><?= e($error) ?></p><?php endif; ?>
-  <form method="post" class="panel">
-    <?= campo_token() ?>
-    <div class="campo">
-      <label class="campo__etiqueta" for="titulo">Título</label>
-      <input class="campo__control" id="titulo" name="titulo" value="<?= e($titulo) ?>" maxlength="160" required>
-    </div>
-    <div class="campo">
-      <label class="campo__etiqueta" for="descripcion">Descripción</label>
-      <textarea class="campo__control" id="descripcion" name="descripcion" maxlength="8000"><?= e($descripcion) ?></textarea>
-    </div>
-    <div class="campo">
-      <label class="campo__etiqueta" for="orden">Posición en el recorrido</label>
-      <select class="campo__control" id="orden" name="orden" style="width: min(5rem, 100%)" required>
-        <?php for ($posicion = 1; $posicion <= $totalPosiciones; $posicion++): ?>
-          <option value="<?= e((string)$posicion) ?>"<?= (string)$posicion === $orden ? ' selected' : '' ?>><?= e((string)$posicion) ?></option>
-        <?php endfor; ?>
-      </select>
-    </div>
-    <button class="boton boton--primario" type="submit">Guardar escena</button>
-  </form>
-</section>
-<?php pie(); ?>
+<p><a href="<?= e($url) ?>">Volver a escenas</a></p>
+<form method="post" class="panel rec-formulario">
+  <?= campo_token() ?>
+  <?php rec_campos_texto($titulo, $descripcion); ?>
+  <label class="campo__etiqueta" for="orden">Posición en el recorrido</label>
+  <select class="campo__control rec-posicion" id="orden" name="orden" required>
+    <?php for ($i = 1; $i <= $total; $i++): ?>
+      <option value="<?= $i ?>" <?= $i === $orden ? 'selected' : '' ?>><?= $i ?></option>
+    <?php endfor; ?>
+  </select>
+  <button class="boton boton--primario">Guardar escena</button>
+</form>
+<?php rec_pie(); ?>

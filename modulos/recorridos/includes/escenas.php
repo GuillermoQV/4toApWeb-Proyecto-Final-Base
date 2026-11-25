@@ -1,119 +1,66 @@
 <?php
-
 declare(strict_types=1);
 
-function rec_escenas_admin(int $recorridoId): array
+function rec_escenas(int $recorridoId): array
 {
-    $consulta = bd()->prepare('SELECT id, titulo, descripcion, orden FROM rec_escenas WHERE recorrido_id = ? ORDER BY orden, id');
-    $consulta->execute([$recorridoId]);
-    return $consulta->fetchAll();
+    return rec_consulta('SELECT * FROM rec_escenas WHERE recorrido_id = ? ORDER BY orden, id', [$recorridoId])->fetchAll();
 }
 
 function rec_escena_admin(?int $id): array
 {
-    if ($id === null) {
-        no_encontrado('Escena no encontrada.');
-    }
-    $consulta = bd()->prepare(
-        'SELECT e.id, e.recorrido_id, e.titulo, e.descripcion, e.orden, r.carrera_id, r.estado
-         FROM rec_escenas e JOIN rec_recorridos r ON r.id = e.recorrido_id WHERE e.id = ?'
-    );
-    $consulta->execute([$id]);
-    $escena = $consulta->fetch();
+    $escena = rec_consulta('SELECT * FROM rec_escenas WHERE id = ?', [$id])->fetch();
     if (!$escena) {
         no_encontrado('Escena no encontrada.');
     }
-    requerir_carrera((int)$escena['carrera_id']);
+    // Verificar el recorrido también verifica la carrera del editor.
+    $recorrido = rec_recorrido_admin((int)$escena['recorrido_id']);
+    $escena['estado'] = $recorrido['estado'];
     return $escena;
 }
 
-function rec_puntos_admin(int $escenaId): array
+function rec_puntos(int $escenaId): array
 {
-    $consulta = bd()->prepare('SELECT id, titulo, descripcion, x, y FROM rec_puntos WHERE escena_id = ? ORDER BY id');
-    $consulta->execute([$escenaId]);
-    return $consulta->fetchAll();
+    return rec_consulta('SELECT * FROM rec_puntos WHERE escena_id = ? ORDER BY id', [$escenaId])->fetchAll();
 }
 
 function rec_punto_admin(?int $id, int $escenaId): array
 {
-    if ($id === null) {
-        no_encontrado('Punto no encontrado.');
-    }
-    $consulta = bd()->prepare('SELECT id, titulo, descripcion, x, y FROM rec_puntos WHERE id = ? AND escena_id = ?');
-    $consulta->execute([$id, $escenaId]);
-    $punto = $consulta->fetch();
+    $punto = rec_consulta('SELECT * FROM rec_puntos WHERE id = ? AND escena_id = ?', [$id, $escenaId])->fetch();
     if (!$punto) {
         no_encontrado('Punto no encontrado.');
     }
     return $punto;
 }
 
-function rec_baja_escena_o_punto(array $escena, ?int $puntoId): void
+// Dentro de la transacción, movemos un id y volvemos a numerar desde 1.
+function rec_renumerar(int $recorridoId, ?int $mover = null, int $posicion = 1): void
 {
-    $bd = bd();
-    $bd->beginTransaction();
-    try {
-        $recorrido = rec_recorrido_admin((int)$escena['recorrido_id'], true);
-        if ($puntoId === null && $recorrido['estado'] === 'publicado') {
-            throw new DomainException('Archiva el recorrido antes de eliminar una escena.');
+    $ids = array_map('intval', array_column(rec_escenas($recorridoId), 'id'));
+    if ($mover !== null) {
+        $anterior = array_search($mover, $ids, true);
+        if ($anterior === false || $posicion < 1 || $posicion > count($ids)) {
+            throw new DomainException('Elige una escena y una posición de este recorrido.');
         }
-        $consulta = $bd->prepare('SELECT id FROM rec_escenas WHERE id = ? AND recorrido_id = ? FOR UPDATE');
-        $consulta->execute([$escena['id'], $recorrido['id']]);
-        if (!$consulta->fetchColumn()) {
-            throw new DomainException('La escena ya no está disponible.');
-        }
-        if ($puntoId === null) {
-            $consulta = $bd->prepare('SELECT nombre_archivo FROM rec_medios WHERE escena_id = ? FOR UPDATE');
-            $consulta->execute([$escena['id']]);
-            $archivos = $consulta->fetchAll(PDO::FETCH_COLUMN);
-            $consulta = $bd->prepare('DELETE FROM rec_escenas WHERE id = ?');
-            $consulta->execute([$escena['id']]);
-            rec_renumerar((int)$recorrido['id']);
-        } else {
-            $consulta = $bd->prepare('SELECT id FROM rec_puntos WHERE id = ? AND escena_id = ? FOR UPDATE');
-            $consulta->execute([$puntoId, $escena['id']]);
-            if (!$consulta->fetchColumn()) {
-                throw new DomainException('El punto ya no está disponible.');
-            }
-            $consulta = $bd->prepare('SELECT nombre_archivo FROM rec_medios WHERE escena_id = ? AND punto_id = ? FOR UPDATE');
-            $consulta->execute([$escena['id'], $puntoId]);
-            $archivos = $consulta->fetchAll(PDO::FETCH_COLUMN);
-            $consulta = $bd->prepare('DELETE FROM rec_puntos WHERE id = ? AND escena_id = ?');
-            $consulta->execute([$puntoId, $escena['id']]);
-        }
-        $bd->commit();
-    } catch (Throwable $error) {
-        if ($bd->inTransaction()) {
-            $bd->rollBack();
-        }
-        throw $error;
+        array_splice($ids, $anterior, 1);
+        array_splice($ids, $posicion - 1, 0, [$mover]);
     }
-
-    foreach ($archivos as $nombre) {
-        try {
-            rec_limpiar_medio($nombre);
-        } catch (RuntimeException $error) {
-            error_log('REC: ' . $error->getMessage());
-        }
+    $consulta = bd()->prepare('UPDATE rec_escenas SET orden = ? WHERE id = ?');
+    foreach ($ids as $indice => $id) {
+        $consulta->execute([$indice + 1, $id]);
     }
 }
 
-/** Dentro de una transacción con el recorrido bloqueado. */
-function rec_renumerar(int $recorridoId, ?int $mover = null, int $posicion = 1): void
+function rec_guardar_escena(int $recorridoId, ?int $escenaId, string $titulo, string $descripcion, int $orden): void
 {
-    $q = bd()->prepare('SELECT id FROM rec_escenas WHERE recorrido_id=? ORDER BY orden,id FOR UPDATE');
-    $q->execute([$recorridoId]);
-    $ids = array_map('intval', $q->fetchAll(PDO::FETCH_COLUMN));
-    if ($mover !== null) {
-        $actual = array_search($mover, $ids, true);
-        if ($actual === false) {
-            throw new DomainException('La escena ya no pertenece a este recorrido.');
+    rec_transaccion($recorridoId, function () use ($recorridoId, $escenaId, $titulo, $descripcion, $orden): void {
+        if ($escenaId === null) {
+            rec_consulta('INSERT INTO rec_escenas (recorrido_id, titulo, descripcion, orden) VALUES (?, ?, ?, ?)',
+                [$recorridoId, $titulo, $descripcion, $orden]);
+            $escenaId = (int)bd()->lastInsertId();
+        } else {
+            rec_consulta('UPDATE rec_escenas SET titulo = ?, descripcion = ? WHERE id = ? AND recorrido_id = ?',
+                [$titulo, $descripcion, $escenaId, $recorridoId]);
         }
-        array_splice($ids, $actual, 1);
-        array_splice($ids, min($posicion - 1, count($ids)), 0, [$mover]);
-    }
-    $q = bd()->prepare('UPDATE rec_escenas SET orden=? WHERE id=? AND recorrido_id=?');
-    foreach ($ids as $indice => $id) {
-        $q->execute([$indice + 1, $id, $recorridoId]);
-    }
+        rec_renumerar($recorridoId, $escenaId, $orden);
+    });
 }

@@ -1,99 +1,55 @@
 <?php
-
 declare(strict_types=1);
-
 require_once __DIR__ . '/../../../nucleo/comun.php';
 requerir_rol('editor', 'coordinacion');
-require_once __DIR__ . '/../includes/plantilla.php';
 require_once __DIR__ . '/../includes/recorridos.php';
-require_once __DIR__ . '/../includes/escenas.php';
-require_once __DIR__ . '/../includes/medios.php';
 
 $escena = rec_escena_admin(rec_id($_GET['escena_id'] ?? null));
 $escenaId = (int)$escena['id'];
 $url = 'puntos.php?escena_id=' . $escenaId;
-$punto = array_key_exists('id', $_GET) ? rec_punto_admin(rec_id($_GET['id']), $escenaId) : null;
-$datos = $punto ?? ['titulo' => '', 'descripcion' => ''];
-$error = '';
+$punto = isset($_GET['id']) ? rec_punto_admin(rec_id($_GET['id']), $escenaId) : null;
+[$titulo, $descripcion] = rec_textos($punto);
+$accion = $_POST['accion'] ?? '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    rec_token_post();
-    $accion = $_POST['accion'] ?? null;
-    if ($accion === 'eliminar' && $punto !== null) {
-        try {
-            rec_baja_escena_o_punto($escena, (int)$punto['id']);
-            mensaje('exito', 'Punto eliminado.');
-        } catch (DomainException $fallo) {
-            mensaje('error', $fallo->getMessage());
-        } catch (Throwable $fallo) {
-            error_log('REC: ' . $fallo->getMessage());
-            mensaje('error', 'No se pudo eliminar el punto.');
-        }
-        redirigir($url);
+rec_post($url, function () use ($accion, $punto, $escena, $escenaId, $titulo, $descripcion): void {
+    if ($accion === 'eliminar' && $punto) {
+        rec_eliminar_con_medios((int)$escena['recorrido_id'], 'punto', (int)$punto['id']);
+        return;
     }
     if ($accion !== 'guardar') {
-        http_response_code(400);
-        exit('Acción no válida.');
+        throw new DomainException('Elige una acción válida.');
     }
-    foreach (['titulo', 'descripcion'] as $campo) {
-        $datos[$campo] = is_string($_POST[$campo] ?? null) ? post($campo) : '';
-    }
-    if ($datos['titulo'] === '' || mb_strlen($datos['titulo']) > 160 || mb_strlen($datos['descripcion']) > 8000) {
-        $error = 'Escribe un título de entre 1 y 160 caracteres. La descripción admite hasta 8000 caracteres.';
+    rec_validar_textos($titulo, $descripcion);
+    if ($punto) {
+        rec_consulta('UPDATE rec_puntos SET titulo = ?, descripcion = ? WHERE id = ? AND escena_id = ?',
+            [$titulo, $descripcion, $punto['id'], $escenaId]);
     } else {
-        $valores = [$datos['titulo'], $datos['descripcion'], $escenaId];
-        if ($punto === null) {
-            $consulta = bd()->prepare('INSERT INTO rec_puntos (titulo, descripcion, x, y, escena_id) VALUES (?, ?, 50, 50, ?)');
-        } else {
-            $consulta = bd()->prepare('UPDATE rec_puntos SET titulo = ?, descripcion = ? WHERE escena_id = ? AND id = ?');
-            $valores[] = $punto['id'];
-        }
-        $consulta->execute($valores);
-        mensaje('exito', 'Punto guardado.');
-        redirigir($url);
+        // Las coordenadas se guardan para conservar el esquema del módulo.
+        rec_consulta('INSERT INTO rec_puntos (escena_id, titulo, descripcion, x, y) VALUES (?, ?, ?, 50, 50)',
+            [$escenaId, $titulo, $descripcion]);
     }
-}
+}, $accion === 'eliminar' ? 'Punto eliminado.' : 'Punto guardado.');
 
-$puntos = rec_puntos_admin($escenaId);
-rec_cabecera('Puntos de interés');
+rec_cabecera('Puntos de interés de ' . $escena['titulo']);
 ?>
-<section class="contenedor seccion rec-formulario">
-  <p><a href="escenas.php?recorrido_id=<?= e((string)$escena['recorrido_id']) ?>">Volver a escenas</a></p>
-  <h1>Puntos de interés de <?= e($escena['titulo']) ?></h1>
-  <?php pintar_mensajes(); ?>
-  <?php if ($puntos === []): ?>
-    <p>Esta escena todavía no tiene puntos.</p>
-  <?php else: ?>
-    <ol class="rec-puntos-panel" role="list">
-      <?php foreach ($puntos as $fila): ?>
-        <li><a href="<?= e($url . '&id=' . $fila['id']) ?>"><?= e($fila['titulo']) ?></a></li>
-      <?php endforeach; ?>
-    </ol>
-  <?php endif; ?>
-  <h2><?= $punto === null ? 'Nuevo punto' : 'Editar punto' ?></h2>
-  <?php if ($error !== ''): ?><p class="alerta alerta--error" role="alert"><?= e($error) ?></p><?php endif; ?>
-  <form method="post" class="panel">
+<p><a href="escenas.php?recorrido_id=<?= (int)$escena['recorrido_id'] ?>">Volver a escenas</a></p>
+<ul>
+  <?php foreach (rec_puntos($escenaId) as $fila): ?>
+    <li><a href="<?= e($url . '&id=' . (int)$fila['id']) ?>"><?= e($fila['titulo']) ?></a></li>
+  <?php endforeach; ?>
+</ul>
+<h2><?= $punto ? 'Editar punto' : 'Nuevo punto' ?></h2>
+<form class="panel rec-formulario" method="post">
+  <?= campo_token() ?>
+  <?php rec_campos_texto($titulo, $descripcion); ?>
+  <button class="boton boton--primario" name="accion" value="guardar">Guardar punto</button>
+</form>
+<?php if ($punto): ?>
+  <form class="fila" method="post">
     <?= campo_token() ?>
-    <div class="campo">
-      <label class="campo__etiqueta" for="titulo">Título</label>
-      <input class="campo__control" id="titulo" name="titulo" value="<?= e($datos['titulo']) ?>" maxlength="160" required>
-    </div>
-    <div class="campo">
-      <label class="campo__etiqueta" for="descripcion">Descripción</label>
-      <textarea class="campo__control" id="descripcion" name="descripcion" maxlength="8000"><?= e($datos['descripcion']) ?></textarea>
-    </div>
-    <button class="boton boton--primario" name="accion" value="guardar">Guardar punto</button>
-    <?php if ($punto !== null): ?><a class="boton boton--secundario" href="<?= e($url) ?>">Nuevo punto</a><?php endif; ?>
+    <button class="boton boton--peligro" name="accion" value="eliminar"
+            onclick="return confirm('¿Eliminar este punto y sus imágenes y videos?')">Eliminar punto</button>
+    <a href="<?= e($url) ?>">Nuevo punto</a>
   </form>
-  <?php if ($punto !== null): ?>
-    <details class="mt-6">
-      <summary>Eliminar este punto</summary>
-      <form method="post">
-        <?= campo_token() ?>
-        <p>También se eliminarán las imágenes asociadas al punto.</p>
-        <button class="boton boton--peligro" name="accion" value="eliminar">Confirmar eliminación</button>
-      </form>
-    </details>
-  <?php endif; ?>
-</section>
-<?php pie(); ?>
+<?php endif; ?>
+<?php rec_pie(); ?>

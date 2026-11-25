@@ -1,79 +1,50 @@
 <?php
-
 declare(strict_types=1);
-
 require_once __DIR__ . '/../../../nucleo/comun.php';
 requerir_rol('editor', 'coordinacion');
-require_once __DIR__ . '/../includes/plantilla.php';
 require_once __DIR__ . '/../includes/recorridos.php';
-require_once __DIR__ . '/../includes/escenas.php';
 
 $recorrido = rec_recorrido_admin(rec_id($_GET['recorrido_id'] ?? null));
 $recorridoId = (int)$recorrido['id'];
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    rec_token_post();
-    $id = rec_id($_POST['mover'] ?? null);
-    $posicion = rec_id($_POST['posicion'] ?? null);
-    if ($id === null || $posicion === null) {
-        no_encontrado('Movimiento no válido.');
-    }
-    $destino = 'escenas.php?recorrido_id=' . $recorridoId;
-    $db = bd();
-    $db->beginTransaction();
-    try {
-        rec_recorrido_admin($recorridoId, true);
-        rec_renumerar($recorridoId, $id, $posicion);
-        $db->commit();
-        $destino .= '#escena-' . $id;
-        mensaje('exito', 'Orden actualizado.');
-    } catch (Throwable $error) {
-        $db->rollBack();
-        mensaje('error', 'No se pudo mover la escena. Revisa la lista actual.');
-    }
-    redirigir($destino);
-}
-$escenas = rec_escenas_admin($recorridoId);
+$id = rec_id($_POST['mover'] ?? null);
+$posicion = rec_id($_POST['posicion'] ?? null);
 
-rec_cabecera('Escenas del recorrido');
+rec_post('escenas.php?recorrido_id=' . $recorridoId . '#escena-' . $id, function () use ($recorridoId, $id, $posicion): void {
+    if ($id === null || $posicion === null) {
+        throw new DomainException('Elige una posición válida.');
+    }
+    rec_transaccion($recorridoId, fn () => rec_renumerar($recorridoId, $id, $posicion));
+}, 'Orden actualizado.');
+
+$escenas = rec_escenas($recorridoId);
+rec_cabecera('Escenas de ' . $recorrido['titulo']);
 ?>
-<section class="contenedor seccion">
-  <p><a href="index.php">Volver a recorridos</a></p>
-  <h1>Escenas de <?= e($recorrido['titulo']) ?></h1>
-  <?php pintar_mensajes(); ?>
-  <p><a class="boton boton--primario" href="escena-editar.php?recorrido_id=<?= e((string)$recorridoId) ?>">Nueva escena</a></p>
-  <p>Arrastra una tarjeta sobre otra o usa los botones para cambiar su posición. El orden se guarda al moverla.</p>
-  <?php if ($escenas === []): ?>
-    <p class="vacio">Este recorrido todavía no tiene escenas.</p>
-  <?php else: ?>
-    <div class="rejilla rec-escenas">
-      <?php foreach ($escenas as $indice => $escena): ?>
-        <?php $id = e((string)$escena['id']); ?>
-        <article id="escena-<?= $id ?>" class="tarjeta" draggable="true" data-posicion="<?= e((string)($indice + 1)) ?>">
-          <div class="tarjeta__cuerpo rec-ficha">
-            <header>
-            <h2 class="tarjeta__titulo"><?= e($escena['titulo']) ?></h2>
-            <span class="rec-orden-numero">Orden <?= e((string)($indice + 1)) ?></span>
-            </header>
-            <?php if ($escena['descripcion'] !== ''): ?><p><?= e($escena['descripcion']) ?></p><?php endif; ?>
-            <form method="post" class="rec-orden">
-              <?= campo_token() ?>
-              <input type="hidden" name="mover" value="<?= $id ?>">
-              <button class="boton boton--primario" name="posicion" value="<?= e((string)$indice) ?>" <?= $indice === 0 ? 'disabled' : '' ?>>↑ Subir</button>
-              <button class="boton boton--primario" name="posicion" value="<?= e((string)($indice + 2)) ?>" <?= $indice === count($escenas)-1 ? 'disabled' : '' ?>>↓ Bajar</button>
-            </form>
-            <ul class="rec-acciones">
-              <li><a href="escena-editar.php?id=<?= $id ?>"><span class="rec-icono-accion" aria-hidden="true">✎</span>Editar y cambiar el orden</a></li>
-              <li><a href="puntos.php?escena_id=<?= $id ?>"><span class="rec-icono-accion" aria-hidden="true">◎</span>Puntos de interés</a></li>
-              <li><a href="medios.php?escena_id=<?= $id ?>"><span class="rec-icono-accion" aria-hidden="true">▧</span>Cargar medios</a></li>
-              <?php if ($recorrido['estado'] !== 'publicado'): ?>
-                <li><a class="rec-eliminar" href="escena-eliminar.php?id=<?= $id ?>"><span class="rec-icono-accion" aria-hidden="true">×</span>Eliminar escena</a></li>
-              <?php endif; ?>
-            </ul>
-          </div>
-        </article>
-      <?php endforeach; ?>
-    </div>
-  <?php endif; ?>
-</section>
-<script src="../js/orden.js?v=<?= e((string)filemtime(__DIR__ . '/../js/orden.js')) ?>" defer></script>
-<?php pie(); ?>
+<p><a href="index.php">Volver a recorridos</a></p>
+<p><a class="boton boton--primario" href="escena-editar.php?recorrido_id=<?= $recorridoId ?>">Nueva escena</a></p>
+<?php if (!$escenas): ?><p class="vacio">Este recorrido todavía no tiene escenas.</p><?php endif; ?>
+<div class="rejilla">
+  <?php foreach ($escenas as $i => $escena): ?>
+    <?php $id = (int)$escena['id']; ?>
+    <article class="tarjeta tarjeta__cuerpo" id="escena-<?= $id ?>" draggable="true" data-posicion="<?= $i + 1 ?>">
+      <h2 class="tarjeta__titulo"><?= $i + 1 ?>. <?= e($escena['titulo']) ?></h2>
+      <p><?= e($escena['descripcion']) ?></p>
+      <form class="fila" method="post">
+        <?= campo_token() ?>
+        <input type="hidden" name="mover" value="<?= $id ?>">
+        <input type="hidden" name="posicion" disabled>
+        <button class="boton boton--secundario boton--pequeno" name="posicion" value="<?= $i ?>" <?= $i === 0 ? 'disabled' : '' ?>>Subir</button>
+        <button class="boton boton--secundario boton--pequeno" name="posicion" value="<?= $i + 2 ?>" <?= $i + 1 === count($escenas) ? 'disabled' : '' ?>>Bajar</button>
+      </form>
+      <ul>
+        <li><a href="escena-editar.php?id=<?= $id ?>">Editar escena</a></li>
+        <li><a href="puntos.php?escena_id=<?= $id ?>">Puntos de interés</a></li>
+        <li><a href="medios.php?escena_id=<?= $id ?>">Cargar medios</a></li>
+        <?php if ($recorrido['estado'] !== 'publicado'): ?>
+          <li><a href="escena-eliminar.php?id=<?= $id ?>">Eliminar escena</a></li>
+        <?php endif; ?>
+      </ul>
+    </article>
+  <?php endforeach; ?>
+</div>
+<script src="../js/orden.js" defer></script>
+<?php rec_pie(); ?>
