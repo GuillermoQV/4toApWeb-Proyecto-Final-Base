@@ -1,134 +1,82 @@
 <?php
-
 declare(strict_types=1);
-
 require_once __DIR__ . '/../../nucleo/comun.php';
-require_once __DIR__ . '/includes/plantilla.php';
-require_once __DIR__ . '/includes/publico.php';
+require_once __DIR__ . '/includes/recorridos.php';
 
-$entrada = $_GET['id'] ?? null;
-$id = is_string($entrada) ? entero($entrada) : null;
-$recorrido = $id === null ? null : rec_recorrido_publico($id);
-if ($recorrido === null) {
-    no_encontrado('Recorrido no disponible.');
-}
-
-$escenas = rec_escenas_publicas($id);
+$recorrido = rec_recorrido_publico(rec_id($_GET['id'] ?? null));
+$id = (int)$recorrido['id'];
+$escenas = rec_escenas($id);
 $posicion = 0;
-if (array_key_exists('escena', $_GET)) {
-    $entrada = $_GET['escena'];
-    $escenaId = is_string($entrada) ? entero($entrada) : null;
-    $posicion = array_search($escenaId, array_map('intval', array_column($escenas, 'id')), true);
+
+// Buscamos el id pedido dentro de las escenas de este recorrido.
+if (isset($_GET['escena'])) {
+    $ids = array_map('intval', array_column($escenas, 'id'));
+    $posicion = array_search(rec_id($_GET['escena']), $ids, true);
     if ($posicion === false) {
         no_encontrado('Escena no disponible en este recorrido.');
     }
 }
-
 $escena = $escenas[$posicion] ?? null;
-if ($escena !== null) {
-    [$puntos, $medios, $mediosDePunto] = rec_contenido_publico((int)$escena['id']);
-}
-rec_cabecera($recorrido['titulo'], $recorrido['area']);
+rec_cabecera($escena['titulo'] ?? $recorrido['titulo'], $recorrido['area'], 'escenas');
 ?>
-<section class="contenedor seccion">
-
-  <nav id="escenas" class="rec-navegacion" aria-label="Escenas del recorrido">
-    <a class="boton boton--secundario" href="index.php">Inicio de recorridos</a>
-    <?php foreach ($escenas as $opcion): ?>
-      <?php $activa = $opcion['id'] === $escena['id']; ?>
-      <a class="boton <?= $activa ? 'boton--primario' : 'boton--secundario' ?>" <?= $activa ? 'aria-current="page"' : '' ?>
-         href="<?= e('ver.php?id=' . $id . '&escena=' . $opcion['id'] . '#escenas') ?>"><?= e($opcion['titulo']) ?></a>
-    <?php endforeach; ?>
+<p><a href="index.php">Inicio de recorridos</a></p>
+<p class="leyenda"><?= e($recorrido['titulo']) ?> · <?= e($recorrido['carrera']) ?></p>
+<?php if (!$escena): ?>
+  <p class="vacio">Este recorrido todavía no tiene escenas disponibles.</p>
+<?php else: ?>
+  <?php
+  $escenaId = (int)$escena['id'];
+  $archivos = rec_archivos_por_punto($escenaId);
+  $puntos = rec_puntos($escenaId);
+  ?>
+  <p><?= e($escena['descripcion']) ?></p>
+  <nav class="fila rec-escena-nav" aria-label="Escenas del recorrido">
+    <?php rec_enlace_escena($escenas[$posicion - 1] ?? null, $id, 'Anterior'); ?>
+    <form class="fila" method="get" action="ver.php#escenas">
+      <input type="hidden" name="id" value="<?= $id ?>">
+      <?php rec_selector('escena', 'Escena ' . ($posicion + 1) . ' de ' . count($escenas), array_column($escenas, 'titulo', 'id'), $escenaId); ?>
+      <button class="boton boton--primario">Ir a escena</button>
+    </form>
+    <?php rec_enlace_escena($escenas[$posicion + 1] ?? null, $id, 'Siguiente'); ?>
   </nav>
-  <?php if ($escena === null): ?>
-    <h1><?= e($recorrido['titulo']) ?></h1>
-    <p class="vacio">Este recorrido todavía no tiene escenas disponibles.</p>
-  <?php else: ?>
-    <div class="rec-reproductor">
-      <h1><?= e($escena['titulo']) ?></h1>
-      <?php if ($escena['descripcion'] !== ''): ?><p><?= e($escena['descripcion']) ?></p><?php endif; ?>
-
-      <?php if ($medios === []): ?><p>Esta escena todavía no tiene medios.</p><?php endif; ?>
-      <?php $imagenMostrada = false; ?>
-      <?php foreach ($medios as $medio): ?>
-        <?php $src = 'medio.php?id=' . $medio['id']; ?>
-        <?php if ($medio['tipo'] === 'imagen' && !$imagenMostrada): ?>
-          <figure class="rec-imagen">
-            <a href="<?= e($src) ?>" data-visor="imagen" aria-haspopup="dialog" aria-label="<?= e('Ampliar imagen de ' . $escena['titulo']) ?>">
-              <img src="<?= e($src) ?>" alt="<?= e('Imagen de la escena ' . $escena['titulo']) ?>">
-            </a>
-          </figure>
-          <?php $imagenMostrada = true; ?>
-        <?php elseif ($medio['tipo'] === 'video'): ?>
-          <video class="rec-video" src="<?= e($src) ?>" controls playsinline preload="metadata"
-                 aria-label="<?= e('Video de ' . $escena['titulo']) ?>"></video>
-        <?php elseif ($medio['tipo'] === 'audio'): ?>
-          <audio class="rec-audio" src="<?= e($src) ?>" controls preload="none"
-                 aria-label="<?= e('Narración de ' . $escena['titulo']) ?>"></audio>
-        <?php endif; ?>
-      <?php endforeach; ?>
-
-      <?php if ($puntos !== []): ?>
-        <section aria-labelledby="titulo-puntos">
-          <h3 id="titulo-puntos">Puntos de interés</h3>
-          <ol class="rec-lista-puntos">
-            <?php foreach ($puntos as $indice => $punto): ?>
-              <?php $clave = 'punto-' . $punto['id']; ?>
-              <li>
-                <button type="button" class="boton boton--secundario rec-abrir-punto"
-                        data-abrir="<?= e($clave) ?>" aria-haspopup="dialog" aria-controls="<?= e($clave) ?>">
-                  <span class="rec-numero"><?= e((string)($indice + 1)) ?></span>
-                  <span><?= e($punto['titulo']) ?></span>
-                </button>
-              </li>
-            <?php endforeach; ?>
-          </ol>
-        </section>
-      <?php endif; ?>
-
-      <?php foreach ($puntos as $punto): ?>
-        <?php $clave = 'punto-' . $punto['id']; $galeria = $mediosDePunto[(int)$punto['id']] ?? []; ?>
-        <dialog class="rec-dialogo" id="<?= e($clave) ?>" aria-labelledby="<?= e($clave . '-titulo') ?>">
-          <div class="rec-dialogo__cabecera">
-            <h3 id="<?= e($clave . '-titulo') ?>"><?= e($punto['titulo']) ?></h3>
+  <div class="panel rec-reproductor">
+    <?php if (empty($archivos[0])): ?><p>Esta escena todavía no tiene medios principales.</p><?php endif; ?>
+    <?php foreach ($archivos[0] ?? [] as $medio) {
+        rec_mostrar_medio($medio, $escena['titulo']);
+    } ?>
+  </div>
+  <?php if ($puntos): ?>
+    <h2>Puntos de interés</h2>
+    <div class="fila">
+      <?php foreach ($puntos as $i => $punto): ?>
+        <?php
+        $clave = 'punto-' . (int)$punto['id'];
+        $medios = $archivos[$punto['id']] ?? [];
+        ?>
+        <button class="boton boton--secundario" type="button" data-abrir="<?= e($clave) ?>" aria-haspopup="dialog"><?= $i + 1 ?>. <?= e($punto['titulo']) ?></button>
+        <dialog class="panel rec-dialogo" id="<?= e($clave) ?>" aria-labelledby="<?= e($clave . '-titulo') ?>">
+          <div class="fila fila--separada">
+            <h2 id="<?= e($clave . '-titulo') ?>"><?= e($punto['titulo']) ?></h2>
             <form method="dialog"><button class="boton boton--secundario" autofocus>Cerrar</button></form>
           </div>
-          <?php if ($punto['descripcion'] !== ''): ?><p class="rec-dialogo__descripcion"><?= e($punto['descripcion']) ?></p><?php endif; ?>
-          <?php if ($galeria !== []): ?>
-            <div class="rec-carrusel">
-              <?php foreach ($galeria as $i => $archivo): ?>
-                <div data-diapositiva>
-                  <?php $src = 'medio.php?id=' . $archivo['id']; ?>
-                  <?php if ($archivo['tipo'] === 'imagen'): ?>
-                    <a href="<?= e($src) ?>" data-visor="imagen" aria-haspopup="dialog">
-                      <img src="<?= e($src) ?>" loading="lazy" alt="<?= e($punto['titulo'] . ' · Imagen ' . ($i + 1)) ?>">
-                    </a>
-                  <?php elseif ($archivo['tipo'] === 'video'): ?>
-                    <video src="<?= e($src) ?>" preload="none" controls playsinline></video>
-                  <?php else: ?>
-                    <audio src="<?= e($src) ?>" preload="none" controls></audio>
-                  <?php endif; ?>
-                </div>
-              <?php endforeach; ?>
+          <p><?= e($punto['descripcion']) ?></p>
+          <div class="rec-carrusel">
+            <?php foreach ($medios as $medio): ?>
+              <div><?php rec_mostrar_medio($medio, $punto['titulo']); ?></div>
+            <?php endforeach; ?>
+          </div>
+          <?php if (count($medios) > 1): ?>
+            <div class="fila" aria-label="Archivos del punto">
+              <button class="boton boton--secundario" type="button" data-paso="-1">Anterior</button>
+              <span data-contador aria-live="polite"></span>
+              <button class="boton boton--secundario" type="button" data-paso="1">Siguiente</button>
             </div>
-          <?php endif; ?>
-          <?php if (count($galeria) > 1): ?>
-            <nav class="rec-controles" aria-label="Archivos del punto">
-              <button aria-label="Anterior" data-paso="-1">‹</button>
-              <div class="rec-indicadores">
-                <?php foreach ($galeria as $i => $archivo): ?>
-                  <button type="button" data-indice="<?= e((string)$i) ?>" aria-label="<?= e('Ir al archivo ' . ($i + 1)) ?>"></button>
-                <?php endforeach; ?>
-              </div>
-              <span aria-live="polite" data-contador></span>
-              <button aria-label="Siguiente" data-paso="1">›</button>
-            </nav>
           <?php endif; ?>
         </dialog>
       <?php endforeach; ?>
     </div>
   <?php endif; ?>
-</section>
+<?php endif; ?>
 <?php require __DIR__ . '/includes/visor.php'; ?>
-<script src="js/galeria.js?v=<?= e((string)filemtime(__DIR__ . '/js/galeria.js')) ?>" defer></script>
-<?php pie(); ?>
+<script src="js/galeria.js" defer></script>
+<?php rec_pie(); ?>

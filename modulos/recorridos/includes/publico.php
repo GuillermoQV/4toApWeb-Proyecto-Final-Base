@@ -1,56 +1,67 @@
 <?php
-
 declare(strict_types=1);
 
-function rec_listado_publico(?int $carreraId): array
+function rec_listado(?int $carreraId, bool $soloPublicados = true): array
 {
-    $sql = "SELECT r.id, r.titulo, r.descripcion, c.nombre AS carrera
-            FROM rec_recorridos r JOIN carreras c ON c.id = r.carrera_id
-            WHERE r.estado = 'publicado' AND c.activa = 1";
-    $orden = ' ORDER BY c.nombre, r.titulo, r.id';
-    if ($carreraId === null) {
-        return bd()->query($sql . $orden)->fetchAll();
+    $sql = 'SELECT r.*, c.nombre AS carrera FROM rec_recorridos r JOIN carreras c ON c.id = r.carrera_id WHERE 1 = 1';
+    if ($soloPublicados) {
+        $sql .= " AND r.estado = 'publicado' AND c.activa = 1";
     }
-    $consulta = bd()->prepare($sql . ' AND r.carrera_id = ?' . $orden);
-    $consulta->execute([$carreraId]);
-    return $consulta->fetchAll();
+    if ($carreraId !== null) {
+        $sql .= ' AND r.carrera_id = ?';
+    }
+    return rec_consulta($sql . ' ORDER BY c.nombre, r.titulo, r.id', $carreraId === null ? [] : [$carreraId])->fetchAll();
 }
 
-function rec_recorrido_publico(int $id): ?array
+function rec_recorrido_publico(?int $id): array
 {
-    $consulta = bd()->prepare(
-        "SELECT r.id, r.titulo, r.descripcion, c.nombre AS carrera, c.area
-         FROM rec_recorridos r JOIN carreras c ON c.id = r.carrera_id
-         WHERE r.id = ? AND r.estado = 'publicado' AND c.activa = 1"
-    );
-    $consulta->execute([$id]);
-    return $consulta->fetch() ?: null;
+    $fila = rec_consulta(
+        "SELECT r.*, c.nombre AS carrera, c.area FROM rec_recorridos r JOIN carreras c ON c.id = r.carrera_id
+         WHERE r.id = ? AND r.estado = 'publicado' AND c.activa = 1", [$id]
+    )->fetch();
+    if (!$fila) {
+        no_encontrado('Recorrido no disponible.');
+    }
+    return $fila;
 }
 
-function rec_escenas_publicas(int $recorridoId): array
+// El grupo 0 corresponde a los archivos principales de la escena.
+function rec_archivos_por_punto(int $escenaId): array
 {
-    $consulta = bd()->prepare('SELECT id, titulo, descripcion FROM rec_escenas WHERE recorrido_id = ? ORDER BY orden, id');
-    $consulta->execute([$recorridoId]);
-    return $consulta->fetchAll();
-}
-
-function rec_contenido_publico(int $escenaId): array
-{
-    $consulta = bd()->prepare('SELECT id, titulo, descripcion, x, y FROM rec_puntos WHERE escena_id = ? ORDER BY id');
-    $consulta->execute([$escenaId]);
-    $puntos = $consulta->fetchAll();
-    $consulta = bd()->prepare('SELECT id, tipo, punto_id FROM rec_medios WHERE escena_id = ? ORDER BY id');
-    $consulta->execute([$escenaId]);
-
-    $medios = [];
-    $mediosDePunto = [];
-    foreach ($consulta->fetchAll() as $medio) {
-        if ($medio['punto_id'] === null) {
-            $medios[] = $medio;
-        } else {
-            $mediosDePunto[(int)$medio['punto_id']][] = $medio;
+    $grupos = [];
+    $portada = false;
+    foreach (rec_medios_de_escena($escenaId) as $medio) {
+        $punto = $medio['punto_id'] ?? 0;
+        if ($punto === 0 && $medio['tipo'] === 'imagen') {
+            if ($portada) {
+                continue;
+            }
+            $portada = true;
         }
+        $grupos[$punto][] = $medio;
     }
+    return $grupos;
+}
 
-    return [$puntos, $medios, $mediosDePunto];
+function rec_mostrar_medio(array $medio, string $titulo): void
+{
+    $url = 'medio.php?id=' . (int)$medio['id'];
+    if ($medio['tipo'] === 'imagen'): ?>
+      <a class="rec-imagen" href="<?= e($url) ?>" data-visor="imagen" aria-haspopup="dialog" aria-label="<?= e('Ampliar imagen de ' . $titulo) ?>">
+        <img src="<?= e($url) ?>" alt="<?= e('Imagen de ' . $titulo) ?>">
+      </a>
+    <?php elseif ($medio['tipo'] === 'video'): ?>
+      <video controls playsinline preload="metadata" src="<?= e($url) ?>" aria-label="<?= e('Video de ' . $titulo) ?>"></video>
+    <?php else: ?>
+      <audio controls preload="none" src="<?= e($url) ?>" aria-label="<?= e('Narración de ' . $titulo) ?>"></audio>
+    <?php endif;
+}
+
+function rec_enlace_escena(?array $escena, int $id, string $texto): void
+{
+    if ($escena): ?>
+      <a class="boton boton--secundario" href="<?= e('ver.php?id=' . $id . '&escena=' . (int)$escena['id']) ?>#escenas"><?= e($texto) ?></a>
+    <?php else: ?>
+      <button type="button" class="boton boton--secundario" disabled><?= e($texto) ?></button>
+    <?php endif;
 }

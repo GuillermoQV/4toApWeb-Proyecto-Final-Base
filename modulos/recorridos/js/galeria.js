@@ -1,48 +1,47 @@
-for (const abrir of document.querySelectorAll('[data-abrir]')) {
-  const ventana = document.getElementById(abrir.dataset.abrir);
-  const pista = ventana.querySelector('.rec-carrusel');
-  const medios = [...ventana.querySelectorAll('[data-diapositiva]')];
-  const puntos = [...ventana.querySelectorAll('[data-indice]')];
-  const contador = ventana.querySelector('[data-contador]');
-  const reducido = matchMedia('(prefers-reduced-motion: reduce)');
+// Cada botón abre el diálogo de un punto. El carrusel avanza por pantallas.
+for (const boton of document.querySelectorAll('[data-abrir]')) {
+  const dialogo = document.getElementById(boton.dataset.abrir);
+  const carrusel = dialogo.querySelector('.rec-carrusel');
+  const archivos = carrusel.children;
+  const contador = dialogo.querySelector('[data-contador]');
   let actual = 0;
 
   function indicar(indice) {
-    medios[actual]?.querySelector('video, audio')?.pause();
+    if (indice !== actual) archivos[actual]?.querySelector('video, audio')?.pause();
     actual = indice;
-    puntos.forEach((punto, i) => punto.setAttribute('aria-current', String(i === indice)));
-    if (contador) contador.textContent = (indice + 1) + ' / ' + medios.length;
+    if (contador) contador.textContent = `${actual + 1} de ${archivos.length}`;
   }
 
-  function ir(indice) {
-    const destino = (indice + medios.length) % medios.length;
-    pista.scrollTo({left: destino * pista.clientWidth, behavior: reducido.matches ? 'instant' : 'smooth'});
-  }
-
-  abrir.addEventListener('click', () => {
-    ventana.showModal();
-    if (pista) pista.scrollLeft = 0;
+  boton.addEventListener('click', () => {
+    dialogo.showModal();
+    carrusel.scrollLeft = 0;
     indicar(0);
   });
-  ventana.addEventListener('close', () => {
-    ventana.querySelectorAll('video, audio').forEach(medio => medio.pause());
-    abrir.focus();
+  dialogo.addEventListener('close', () => {
+    dialogo.querySelectorAll('video, audio').forEach(medio => medio.pause());
+    boton.focus();
   });
-  if (medios.length < 2) continue;
-  pista.addEventListener('scroll', () => {
-    if (!pista.clientWidth) return;
-    const indice = Math.max(0, Math.min(medios.length - 1, Math.round(pista.scrollLeft / pista.clientWidth)));
-    if (actual !== indice) indicar(indice);
-  }, {passive: true});
-  for (const boton of ventana.querySelectorAll('[data-paso]')) {
-    boton.addEventListener('click', () => ir(actual + Number(boton.dataset.paso)));
+  if (archivos.length < 2) continue;
+
+  carrusel.addEventListener('scroll', () => {
+    if (!carrusel.clientWidth) return;
+    const indice = Math.round(carrusel.scrollLeft / carrusel.clientWidth);
+    indicar(Math.max(0, Math.min(indice, archivos.length - 1)));
+  }, { passive: true });
+
+  function mover(paso) {
+    const destino = (actual + paso + archivos.length) % archivos.length;
+    carrusel.scrollLeft = destino * carrusel.clientWidth;
+    indicar(destino);
   }
-  puntos.forEach((punto, i) => punto.addEventListener('click', () => ir(i)));
-  ventana.addEventListener('keydown', evento => {
+  for (const control of dialogo.querySelectorAll('[data-paso]')) {
+    control.addEventListener('click', () => mover(Number(control.dataset.paso)));
+  }
+  dialogo.addEventListener('keydown', evento => {
     if (evento.target.matches('video, audio')) return;
-    if (evento.key === 'ArrowRight' || evento.key === 'ArrowLeft') {
+    if (evento.key === 'ArrowLeft' || evento.key === 'ArrowRight') {
       evento.preventDefault();
-      ir(actual + (evento.key === 'ArrowRight' ? 1 : -1));
+      mover(evento.key === 'ArrowRight' ? 1 : -1);
     }
   });
 }

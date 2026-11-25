@@ -1,30 +1,18 @@
-// Usa los mismos enlaces del encabezado que proporciona el núcleo.
-(() => {
-  const nav = document.querySelector('.encabezado__barra > nav');
-  if (!nav) return;
+// El menú compacto usa los mismos enlaces del encabezado de la plataforma.
+const navegacion = document.querySelector('.encabezado__barra > nav');
+navegacion.id = 'rec-menu-principal';
+navegacion.insertAdjacentHTML('beforebegin', `
+  <button type="button" class="boton boton--secundario rec-menu" aria-controls="rec-menu-principal" aria-expanded="false">Menú</button>
+`);
+const botonMenu = navegacion.previousElementSibling;
 
-  const compacto = matchMedia('(max-width: 64rem)');
-  const boton = document.createElement('button');
-  boton.type = 'button';
-  boton.className = 'boton boton--secundario rec-menu';
-  boton.textContent = 'Menú';
-  nav.id = 'rec-menu-principal';
-  boton.setAttribute('aria-controls', nav.id);
-  boton.setAttribute('aria-expanded', 'false');
-  nav.before(boton);
-
-  boton.addEventListener('click', () => {
-    boton.setAttribute('aria-expanded', String(boton.getAttribute('aria-expanded') === 'false'));
-  });
-  nav.addEventListener('keydown', evento => {
-    if (evento.key === 'Escape' && compacto.matches) {
-      boton.setAttribute('aria-expanded', 'false');
-      boton.focus();
-    }
-  });
-  compacto.addEventListener('change', () => {
-    boton.setAttribute('aria-expanded', 'false');
-    if (compacto.matches && nav.contains(document.activeElement)) boton.focus();
-    if (!compacto.matches && document.activeElement === boton) nav.querySelector('a')?.focus();
-  });
-})();
+botonMenu.addEventListener('click', () => {
+  const abierto = botonMenu.getAttribute('aria-expanded') === 'true';
+  botonMenu.setAttribute('aria-expanded', String(!abierto));
+});
+navegacion.addEventListener('keydown', evento => {
+  if (evento.key === 'Escape' && matchMedia('(max-width: 64rem)').matches) {
+    botonMenu.setAttribute('aria-expanded', 'false');
+    botonMenu.focus();
+  }
+});
