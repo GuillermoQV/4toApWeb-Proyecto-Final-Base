@@ -2,6 +2,7 @@
 USE explorador_vocacional;
 SET NAMES utf8mb4;
 
+-- Una carrera puede ofrecer varios recorridos.
 CREATE TABLE IF NOT EXISTS rec_recorridos (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     carrera_id INT UNSIGNED NOT NULL,
@@ -13,6 +14,7 @@ CREATE TABLE IF NOT EXISTS rec_recorridos (
         FOREIGN KEY (carrera_id) REFERENCES carreras(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- orden dice en qué posición se visita cada escena.
 CREATE TABLE IF NOT EXISTS rec_escenas (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     recorrido_id INT UNSIGNED NOT NULL,
@@ -38,6 +40,7 @@ CREATE TABLE IF NOT EXISTS rec_puntos (
         FOREIGN KEY (escena_id) REFERENCES rec_escenas(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- punto_id vacío indica que el medio pertenece a la escena completa.
 CREATE TABLE IF NOT EXISTS rec_medios (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     escena_id INT UNSIGNED NOT NULL,
